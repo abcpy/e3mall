@@ -15,7 +15,7 @@
 //	@Test
 //	public void testFileUpload() throws FileNotFoundException, IOException, MyException{
 //		//1. 加载配置文件，配置文件中的内容就是tracker服务的地址。
-//		ClientGlobal.init("E:/Users/liujian/git/e3-manager-web/src/main/resources/client.conf");
+//		ClientGlobal.init("E:/Users/liujian/git/e3-manager-web/src/main/resources/conf/client.conf");
 //		//2. 2、创建一个TrackerClient对象。直接new一个。
 //		TrackerClient trackerClient = new TrackerClient();
 //		//3、使用TrackerClient对象创建连接，获得一个TrackerServer对象。
