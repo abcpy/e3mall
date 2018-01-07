@@ -4,7 +4,19 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.annotation.Resource;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jboss.netty.util.internal.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 import org.springframework.stereotype.Service;
 
 import com.e3.mapper.TbContentCategoryMapper;
@@ -22,8 +34,10 @@ import com.e3.pojo.TbContentExample;
 import com.e3.pojo.TbItem;
 import com.e3.pojo.TbItemDesc;
 import com.e3.pojo.TbItemExample;
+import com.e3.redisUtils.JedisClient;
 import com.e3.utils.E3Result;
 import com.e3.utils.IDUtils;
+import com.e3.utils.JsonUtils;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 
@@ -38,6 +52,19 @@ public class itemServiceImpl implements ItemService{
 	private TbContentCategoryMapper tbContentCategorymapper;
 	@Autowired
 	private TbContentMapper tbContentMapper;
+	@Autowired
+	private JmsTemplate jmsTemplate;
+	@Resource
+	private Destination destination;
+	@Autowired
+	private JedisClient jedisClient;
+	@Value("${REDIS_ITEM_PRE}")
+	private String REDIS_ITEM_PRE;
+	@Value("${ITEM_CACHE_EXPIRE}")
+	private Integer ITEM_CACHE_EXPIRE;
+	
+	
+	
 
 	@Override
 	public EasyUIDataGridResult getItemList(int page, int rows) {
@@ -60,7 +87,7 @@ public class itemServiceImpl implements ItemService{
 	public E3Result addGoods(TbItem tbItem, String desc) {
 		// private Long id;
 		//1、生成商品id
-		long id =IDUtils.genItemId();
+		final long id =IDUtils.genItemId();
 		tbItem.setId(id);
 		//2.补全TbItem对象的属性
 		//'商品状态，1-正常，2-下架，3-删除',
@@ -79,6 +106,16 @@ public class itemServiceImpl implements ItemService{
 		tbItemDesc.setUpdated(new Date());
 		// 6、向商品描述表插入数据
 		descmapper.insert(tbItemDesc);
+		
+		//发送一个商品添加的消息
+		jmsTemplate.send(destination, new MessageCreator() {
+			
+			@Override
+			public Message createMessage(Session session) throws JMSException {
+				TextMessage textMessage =session.createTextMessage(id+"");
+				return textMessage;
+			}
+		});
 		//7、E3Result.ok()
 		return E3Result.ok();
 	  
@@ -162,6 +199,58 @@ public class itemServiceImpl implements ItemService{
 		result.setTotal(pageInfo.getTotal());
 		result.setRows(pageInfo.getList());
 		return result;
+	}
+
+	@Override
+	public TbItem geTbItem(long itemId) {
+		//查询缓存
+		try{
+		String json=jedisClient.get(REDIS_ITEM_PRE+":"+itemId+"BASE:");
+		if(StringUtils.isNoneBlank(json)){
+			TbItem tbItem =JsonUtils.jsonToPojo(json, TbItem.class);
+			return tbItem;
+		}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		TbItemExample tbItemExample=new TbItemExample();
+		com.e3.pojo.TbItemExample.Criteria criteria=tbItemExample.createCriteria();
+		criteria.andIdEqualTo(itemId);
+		List<TbItem> list =itemmapper.selectByExample(tbItemExample);
+		if(list!=null&&list.size()>0){
+			try{
+			//加入缓存
+			jedisClient.set(REDIS_ITEM_PRE+":"+itemId+"BASE:", JsonUtils.objectToJson(list.get(0)));
+			//设置缓存过期时间
+			jedisClient.expire(REDIS_ITEM_PRE+":"+itemId+"BASE:", ITEM_CACHE_EXPIRE);
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+			return list.get(0);
+		}
+		return null;
+	}
+
+	@Override
+	public TbItemDesc geTbItemDesc(long itemId) {
+		//查询缓存
+		try{
+			String json =jedisClient.get(REDIS_ITEM_PRE+":"+itemId+"DESC:");
+			TbItemDesc tbItemDesc =JsonUtils.jsonToPojo(json, TbItemDesc.class);
+			return tbItemDesc;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		TbItemDesc tbItemDesc =descmapper.selectByPrimaryKey(itemId);
+		try{
+			//加入缓存
+			jedisClient.set(REDIS_ITEM_PRE+":"+itemId+"DESC:", JsonUtils.objectToJson(tbItemDesc));
+			jedisClient.expire(REDIS_ITEM_PRE+":"+itemId+"DESC:", ITEM_CACHE_EXPIRE);
+			
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return tbItemDesc;
 	}
 	
 	

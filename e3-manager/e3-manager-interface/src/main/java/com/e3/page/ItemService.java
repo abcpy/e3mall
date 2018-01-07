@@ -6,6 +6,7 @@ import com.e3.page.pojo.EasyUIDataGridResult;
 import com.e3.page.pojo.EasyUITreeNode;
 import com.e3.pojo.TbContent;
 import com.e3.pojo.TbItem;
+import com.e3.pojo.TbItemDesc;
 import com.e3.utils.E3Result;
 
 public interface ItemService {
@@ -15,5 +16,7 @@ public interface ItemService {
 	E3Result addContentCategory(long parentId,String name);
 	E3Result addContent(TbContent tbContent);
 	EasyUIDataGridResult getItemContentList(int page, int rows);
+	TbItem geTbItem(long itemId);
+	TbItemDesc geTbItemDesc(long itemId);
 	
 }

@@ -2,6 +2,8 @@ package com.e3.redisUtils;
 
 
 
+import java.util.List;
+
 import redis.clients.jedis.JedisCluster;
 
 public class JedisClientCluster implements JedisClient {
@@ -60,6 +62,23 @@ public class JedisClientCluster implements JedisClient {
 	@Override
 	public Long hdel(String key, String... field) {
 		return jedisCluster.hdel(key, field);
+	}
+
+	@Override
+	public Boolean hexists(String key, String field) {
+		return jedisCluster.hexists(key, field);
+	}
+
+	@Override
+	public List<String> hvals(String key) {
+		List<String> result=jedisCluster.hvals(key);
+		return result;
+	}
+
+	@Override
+	public Long del(String key) {
+		long result =jedisCluster.del(key);
+		return result;
 	}
 
 }

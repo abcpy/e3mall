@@ -39,6 +39,8 @@
 	<dubbo:reference interface="com.e3.page.ItemService" id="itemService" />
 	<dubbo:reference interface="com.e3.page.ItemCatService" id="itemCatService" />
 	<dubbo:reference interface="com.e3.content.service.contentService" id="contentlistservice" />
+	<dubbo:reference interface="com.e3.searchItem.ImportItem" id="searhitem" />
+	
 	
 	
 	

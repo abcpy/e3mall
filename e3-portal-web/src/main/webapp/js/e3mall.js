@@ -1,11 +1,11 @@
 var E3MALL = {
 	checkLogin : function(){
-		var _ticket = $.cookie("TT_TOKEN");
+		var _ticket = $.cookie("COOKIE_TOKEN_KEY");
 		if(!_ticket){
 			return ;
 		}
 		$.ajax({
-			url : "http://localhost:8088/user/token/" + _ticket,
+			url : "http://localhost:8094/user/token/" + _ticket,
 			dataType : "jsonp",
 			type : "GET",
 			success : function(data){
